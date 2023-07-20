@@ -71,8 +71,8 @@ while True:
     gray_frames = []
 
     for i in range(len(frames)):
-        frames[i]       = cv2.undistort(frames[i], K[i], D[i], None, K_opt[i][1])
-        gray_frames[i]  = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY)
+        frames[i] = cv2.undistort(frames[i], K[i], D[i], None, K_opt[i][0])
+        gray_frames.append(cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY))
 
 
 
@@ -80,19 +80,20 @@ while True:
     all_ids = []
 
     for i in range(len(frames)):
-        all_corners[i]  = None
-        all_ids[i]      = None
+        all_corners.append(None)
+        all_ids.append(None)
 
-        cor,  id,  rejec = arucoDetector.detectMarkers(gray_frames[i])
+        cor,  ids,  rejec = arucoDetector.detectMarkers(gray_frames[i])
 
         if len(cor) > 4:
-            aruco.refineDetectedMarkers(gray_frames[i], board, cor, id, rejec)
+            aruco.refineDetectedMarkers(gray_frames[i], board, cor, ids, rejec)
+            #frames[i] = aruco.drawDetectedMarkers(frames[i], cor, ids)
             
-            if corners_left is not None and len(id)>3 and max(id) <= max(board.getIds()):
-                corners_left = np.array(corners_left, dtype=np.float32)
+            if cor is not None and len(ids)>3 and max(ids) <= max(board.getIds()):
+                cor = np.array(cor, dtype=np.float32)
 
-                if is_slice_in_list(numpy.squeeze(id).tolist(), corner_ids): # all left corners are detected
-                    charucoretval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(cor,  id, gray_frames[i], board)
+                if is_slice_in_list(numpy.squeeze(ids).tolist(), ids): # all left corners are detected
+                    charucoretval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(cor,  ids, gray_frames[i], board)
                     
                     if charucoretval:
                         all_corners[i]  = charucoCorners
@@ -107,13 +108,17 @@ while True:
     if notNones > 1:
 
         positions = []
+        for cam_id in range(len(cams)):
+            positions.append(None)
+
+
 
         for cam_id in range(len(cams)):
             if all_corners[cam_id] is not None:
 
                 valid, rvec, tvec = aruco.estimatePoseCharucoBoard(
                             charucoCorners=all_corners[cam_id], charucoIds=all_ids[cam_id], board=board, \
-                                cameraMatrix=K_opt[cam_id][1], distCoeffs=D[cam_id], rvec=None, tvec=None,\
+                                cameraMatrix=K_opt[cam_id][0], distCoeffs=D[cam_id], rvec=None, tvec=None,\
                                     useExtrinsicGuess=False)
                 
                 if valid:
@@ -134,7 +139,7 @@ while True:
                     # mm to meters 
                     camera_pos = camera_pos * 0.001 
 
-                    positions[cam_id].append(camera_pos)
+                    positions[cam_id] = camera_pos
         
         for camId1 in range(len(cams)):
             for camId2 in range(len(cams)):
@@ -143,20 +148,41 @@ while True:
 
                 if positions[camId1] is not None and \
                     positions[camId2] is not None:
+                    # positions[camId1] - positions[camId2]
+
+                    #print(positions[camId1][1])
 
                     distances[camId1][camId2].append(positions[camId1] - positions[camId2])
 
+                    #bs = math.hypot(
+                    #    positions[camId1][0, 0] - positions[camId2][0, 0], 
+                    #    positions[camId1][0, 1] - positions[camId2][0, 1], 
+                    #    positions[camId1][0, 2] - positions[camId2][0, 2])
+                    #print('baseline: {bs} cm'.format(bs=bs * 100))
+
                     print('Collected cam id {} and {}'.format(camId1, camId2) )
 
-    k = cv2.waitKey(1)
-    if k%256 == 27:
-        # ESC pressed
-        print("Escape hit, closing...")
+
+    
+    #out = cv2.hconcat(frames)
+
+    #cv2.imshow("camera", gray_frames[0])
+
+    
+    if len(distances[0][1]) > 2:
         break
+
+    #k = cv2.waitKey(1)
+    #if k%256 == 27:
+        # ESC pressed
+    #    print("Escape hit, closing...")
+    #    break
    
 
 final_cam_pos = []
 
+for cam in cams:
+    final_cam_pos.append(None)
 
 final_cam_pos[0] = np.array([0.0,0.0,0.0])
 
@@ -165,7 +191,11 @@ def solve_neighbours(root_id):
         if camId == root_id:
             continue
 
-        if len(distances[root_id][camId]) > 30:
+        if len(distances[root_id][camId]) > 2:
+            
+            if final_cam_pos[camId] is not None:
+                continue
+
 
             distance = np.average(distances[root_id][camId])
 
@@ -174,61 +204,20 @@ def solve_neighbours(root_id):
             solve_neighbours(camId)
 
 
+solve_neighbours(0)
 
 
+for camId in range(len(cams)):
+    print('position cam{} : {}'.format(camId, final_cam_pos[camId]))
 
 
-
-    
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-            
-
+bs = math.hypot(
+    final_cam_pos[0][0] - final_cam_pos[1][0], 
+    final_cam_pos[0][1] - final_cam_pos[1][1], 
+    final_cam_pos[0][2] - final_cam_pos[1][2])
                 
+print('baseline: {bs} cm'.format(bs=bs * 100))
 
-
-
-
-        
-        
-
-
-                
-                
-
-
-
-
-
-
-
-    
-
-
-    
-
-
-
-
-
-
-    k = cv2.waitKey(1)
-    if k%256 == 27:
-        # ESC pressed
-        print("Escape hit, closing...")
-        break
 
 for cam in cams:
     cam.release()
