@@ -10,23 +10,6 @@ matplotlib.use('GTK3Agg')
 
 import matplotlib.pyplot as plt
 
-import math
-
-
-def rotation_matrix_to_attitude_angles(R) :
-    cos_beta = math.sqrt(R[2,1] * R[2,1] + R[2,2] * R[2,2])
-    validity = cos_beta < 1e-6
-    if not validity:
-        alpha = math.atan2(R[1,0], R[0,0])    # yaw   [z]
-        beta  = math.atan2(-R[2,0], cos_beta) # pitch [y]
-        gamma = math.atan2(R[2,1], R[2,2])    # roll  [x]
-    else:
-        alpha = math.atan2(R[1,0], R[0,0])    # yaw   [z]
-        beta  = math.atan2(-R[2,0], cos_beta) # pitch [y]
-        gamma = 0                             # roll  [x]
-
-    return alpha, beta, gamma
-
 
 
 board_shape = [7, 5]
@@ -152,18 +135,56 @@ while True:
                     camera_pos = camera_pos * 0.001 
 
                     positions[cam_id].append(camera_pos)
-
-
         
-        for camId1 in range(cams):
-            for camId2 in range(cams):
+        for camId1 in range(len(cams)):
+            for camId2 in range(len(cams)):
                 if camId1 == camId2:
                     continue
 
                 if positions[camId1] is not None and \
                     positions[camId2] is not None:
 
-                    distances[camId1][camId2] = positions[camId1] - positions[camId2]
+                    distances[camId1][camId2].append(positions[camId1] - positions[camId2])
+
+                    print('Collected cam id {} and {}'.format(camId1, camId2) )
+
+    k = cv2.waitKey(1)
+    if k%256 == 27:
+        # ESC pressed
+        print("Escape hit, closing...")
+        break
+   
+
+final_cam_pos = []
+
+
+final_cam_pos[0] = np.array([0.0,0.0,0.0])
+
+def solve_neighbours(root_id):
+    for camId in range(len(cams)):
+        if camId == root_id:
+            continue
+
+        if len(distances[root_id][camId]) > 30:
+
+            distance = np.average(distances[root_id][camId])
+
+            final_cam_pos[camId] = final_cam_pos[root_id] + distance
+
+            solve_neighbours(camId)
+
+
+
+
+
+
+
+    
+
+
+
+
+
 
 
         
@@ -208,12 +229,8 @@ while True:
         # ESC pressed
         print("Escape hit, closing...")
         break
-    elif(k%256 == ord('s')):
-        print('save clicked')
 
-        cv2.imwrite('left.png', frame_left)
-
-
-left_cam.release()
+for cam in cams:
+    cam.release()
 
 cv2.destroyAllWindows()

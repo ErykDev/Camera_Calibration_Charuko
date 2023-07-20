@@ -25,7 +25,6 @@ frames = 0
 
 K1 = np.loadtxt('Intrinsic_mtx_1.txt', dtype=float).reshape((3, 3))
 
-R = np.loadtxt('R.txt', dtype=float)
 
 D1 = np.loadtxt('dist_1.txt', dtype=float)
 
