@@ -148,28 +148,21 @@ while True:
 
                 if positions[camId1] is not None and \
                     positions[camId2] is not None:
-                    # positions[camId1] - positions[camId2]
 
-                    #print(positions[camId1][1])
-
-                    distances[camId1][camId2].append(positions[camId1] - positions[camId2])
-
-                    #bs = math.hypot(
-                    #    positions[camId1][0, 0] - positions[camId2][0, 0], 
-                    #    positions[camId1][0, 1] - positions[camId2][0, 1], 
-                    #    positions[camId1][0, 2] - positions[camId2][0, 2])
-                    #print('baseline: {bs} cm'.format(bs=bs * 100))
+                    distances[camId1][camId2].append(
+                        np.array([
+                            positions[camId1][0, 0] - positions[camId2][0, 0], 
+                            positions[camId1][0, 1] - positions[camId2][0, 1], 
+                            positions[camId1][0, 2] - positions[camId2][0, 2]])
+                    )
 
                     print('Collected cam id {} and {}'.format(camId1, camId2) )
 
-
-    
     #out = cv2.hconcat(frames)
-
     #cv2.imshow("camera", gray_frames[0])
 
     
-    if len(distances[0][1]) > 2:
+    if len(distances[0][1]) > 90:
         break
 
     #k = cv2.waitKey(1)
@@ -191,13 +184,13 @@ def solve_neighbours(root_id):
         if camId == root_id:
             continue
 
-        if len(distances[root_id][camId]) > 2:
+        if len(distances[root_id][camId]) > 90:
             
             if final_cam_pos[camId] is not None:
                 continue
 
+            distance = np.average(distances[root_id][camId], axis=0) # np.average(distances[root_id][camId])
 
-            distance = np.average(distances[root_id][camId])
 
             final_cam_pos[camId] = final_cam_pos[root_id] + distance
 
