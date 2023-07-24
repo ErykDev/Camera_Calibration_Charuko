@@ -34,11 +34,6 @@ D = [np.loadtxt('dist_1.txt', dtype=float),
 K_opt = [cv2.getOptimalNewCameraMatrix(K[0], D[0], (w,h), 0, (w,h)),
          cv2.getOptimalNewCameraMatrix(K[1], D[1], (w,h), 0, (w,h))]
 
-pixel_size = 0.003
-
-
-sensor_size_x = w * pixel_size
-sensor_size_y = h * pixel_size
 
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
 
@@ -106,12 +101,9 @@ while True:
             notNones += 1
 
     if notNones > 1:
-
         positions = []
         for cam_id in range(len(cams)):
             positions.append(None)
-
-
 
         for cam_id in range(len(cams)):
             if all_corners[cam_id] is not None:
@@ -156,7 +148,7 @@ while True:
                             positions[camId1][0, 2] - positions[camId2][0, 2]])
                     )
 
-                    print('Collected cam id {} and {}'.format(camId1, camId2) )
+                    print('Collected cam id {} and {}'.format(camId1, camId2))
 
     #out = cv2.hconcat(frames)
     #cv2.imshow("camera", gray_frames[0])
@@ -179,6 +171,19 @@ for cam in cams:
 
 final_cam_pos[0] = np.array([0.0,0.0,0.0])
 
+
+import scipy.stats as stat
+
+def sortoutOutliers(distances, bar = 3):
+    d_z = stat.zscore(distances, axis=0)
+
+    d_z_c = np.abs(d_z) < bar
+
+    dataOut = [ x for x, ab in zip(distances, d_z_c) \
+               if ( (ab[0] and ab[1] and ab[2]))] 
+    return dataOut
+
+
 def solve_neighbours(root_id):
     for camId in range(len(cams)):
         if camId == root_id:
@@ -189,16 +194,13 @@ def solve_neighbours(root_id):
             if final_cam_pos[camId] is not None:
                 continue
 
-            distance = np.average(distances[root_id][camId], axis=0) # np.average(distances[root_id][camId])
-
+            distance = np.average(distances[root_id][camId], axis=0)
 
             final_cam_pos[camId] = final_cam_pos[root_id] + distance
 
             solve_neighbours(camId)
 
-
 solve_neighbours(0)
-
 
 for camId in range(len(cams)):
     print('position cam{} : {}'.format(camId, final_cam_pos[camId]))
