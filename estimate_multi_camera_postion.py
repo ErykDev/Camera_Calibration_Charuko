@@ -179,9 +179,9 @@ def sortoutOutliers(distances, bar = 3):
 
     d_z_c = np.abs(d_z) < bar
 
-    dataOut = [ x for x, ab in zip(distances, d_z_c) \
-               if ( (ab[0] and ab[1] and ab[2]))] 
-    return dataOut
+    return [ x for x, ab in zip(distances, d_z_c) \
+               if (ab[0] and ab[1] and ab[2]) \
+                ] 
 
 
 def solve_neighbours(root_id):
@@ -194,7 +194,9 @@ def solve_neighbours(root_id):
             if final_cam_pos[camId] is not None:
                 continue
 
-            distance = np.average(distances[root_id][camId], axis=0)
+            filteredDistances = sortoutOutliers(distances[root_id][camId])
+
+            distance = np.average(filteredDistances, axis=0)
 
             final_cam_pos[camId] = final_cam_pos[root_id] + distance
 
@@ -211,7 +213,7 @@ bs = math.hypot(
     final_cam_pos[0][1] - final_cam_pos[1][1], 
     final_cam_pos[0][2] - final_cam_pos[1][2])
                 
-print('baseline: {bs} cm'.format(bs=bs * 100))
+print('baseline: {bs} cm'.format(bs = bs * 100))
 
 
 for cam in cams:

@@ -56,13 +56,6 @@ D2 = np.loadtxt('dist_2.txt', dtype=float)
 M1_opt, roi_1 = cv2.getOptimalNewCameraMatrix(K1, D1, (w,h), 0, (w,h))
 M2_opt, roi_2 = cv2.getOptimalNewCameraMatrix(K2, D2, (w,h), 0, (w,h))
 
-
-pixel_size = 0.003
-
-
-sensor_size_x = w * pixel_size
-sensor_size_y = h * pixel_size
-
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
 
 corner_ids = cornerIds(board_shape)
