@@ -1,11 +1,8 @@
 import cv2
 import numpy as np
 
-from matplotlib import cm, colors
 
 import cv2.aruco as aruco
-
-from math import sin, cos
 
 
 from calibration_utils import *
@@ -65,38 +62,39 @@ criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
 setupCam(cam, w, h)
 
 
-
-
-
 # 90 degrees rotation needed to match the frames
 DEFAULT_ROT = np.array([[0,0,-1],[0,1,0],[1,0,0]])
 
 # specific rotations for each face of the cube
-zero = np.matmul(np.array([[1,0,0],[0,1,0],[0,0,1]]),   DEFAULT_ROT)
-uno = np.matmul(np.array([[1,0,0],[0,-1,0],[0,0,-1]]),  DEFAULT_ROT)
-due = np.matmul(np.array([[1,0,0],[0,0,1],[0,-1,0]]),   DEFAULT_ROT)
-tre = np.matmul(np.array([[1,0,0],[0,0,-1],[0,1,0]]),   DEFAULT_ROT)
-quattro = np.matmul(np.array([[0,0,-1],[0,1,0],[1,0,0]]),DEFAULT_ROT)
-cinque = np.matmul(np.array([[0,0,1],[0,1,0],[-1,0,0]]),DEFAULT_ROT)
+zero = np.matmul(np.array([[1,0,0],[0,1,0],[0,0,1]]),       DEFAULT_ROT)
+uno = np.matmul(np.array([[1,0,0],[0,-1,0],[0,0,-1]]),      DEFAULT_ROT)
+due = np.matmul(np.array([[1,0,0],[0,0,1],[0,-1,0]]),       DEFAULT_ROT)
+tre = np.matmul(np.array([[1,0,0],[0,0,-1],[0,1,0]]),       DEFAULT_ROT)
+
+quattro = np.matmul(np.array([[0,0,-1],[0,1,0],[1,0,0]]),   DEFAULT_ROT)
+cinque = np.matmul(np.array([[0,0,1],[0,1,0],[-1,0,0]]),    DEFAULT_ROT)
 
 # Dictionary used to map the ArUco ids to the corresponding rotation
 EUL_TRANS_DICT= {
 	94 : zero,
-	95 : uno,
-	96 : due,
-    97 : tre,
+	97 : uno,
+	95 : due,
+    99 : tre,
+
 	98 : quattro,
-	99 : cinque
+	96 : cinque
 }
 
 # Dictionary used to find the centroid of the cube given a face
 CENTER_POINT_OFFSET_DICT={
-    94 : np.float32([[-0.025,0,0]]),
-    95 : np.float32([[0.025,0,0]]),
-    96 : np.float32([[0,0.025,0]]),
-    97 : np.float32([[0,-0.025,0]]),
+    94 : np.float32([[-0.025,0,0]]), #top
+    97 : np.float32([[0.025,0,0]]),
+    95 : np.float32([[0,0.025,0]]),
+    99 : np.float32([[0,-0.025,0]]),
+
+
     98 : np.float32([[0,0,0.025]]),
-    99 : np.float32([[0,0,-0.025]])
+    96 : np.float32([[0,0,-0.025]])
 }
 
 
@@ -115,7 +113,7 @@ while True:
 
         corners, ids, rejectedCorners = arucoDetector.detectMarkers(gray)
 
-        if len(corners) > 1:
+        if len(corners) > 0:
 
             #Refine Corners
             for corner in corners:
@@ -170,7 +168,7 @@ while True:
             frame = cv2.circle(frame, (imgpts[0][0], imgpts[0][1]), radius=3, color=(255,0,255), thickness=4)
 
 
-            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, centroid_coords[:-1], 0.03)
+            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, centroid_coords[:-1], 0.02)
 
             
             #return frame, imgpts[0], tvec, computed_rvec
