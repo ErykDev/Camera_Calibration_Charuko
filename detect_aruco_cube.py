@@ -148,7 +148,7 @@ while True:
             computed_rvec = cv2.Rodrigues(computed_rtm)[0]
 
             # Draw the frames to the output image
-            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, tvec, 0.01)
+            #cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, tvec, 0.01)
 
             # Preliminary operations to find the centroid of the cube
             centroid_offset = CENTER_POINT_OFFSET_DICT[minId]
@@ -164,13 +164,15 @@ while True:
             y = CENTER_POINT_OFFSET_DICT[minId][0][1]
             z = CENTER_POINT_OFFSET_DICT[minId][0][2]
             centroid_coords = [ [x], [y], [z], [1] ]
-            centroid_coords = np.matmul(homogenous_trans_mtx,centroid_coords)
+            centroid_coords = np.matmul(homogenous_trans_mtx, centroid_coords)
 
             # Draw the centroid on the output image
             frame = cv2.circle(frame, (imgpts[0][0], imgpts[0][1]), radius=3, color=(255,0,255), thickness=4)
 
 
+            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, centroid_coords[:-1], 0.03)
 
+            
             #return frame, imgpts[0], tvec, computed_rvec
             
 
