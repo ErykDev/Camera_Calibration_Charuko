@@ -67,177 +67,202 @@ setupCam(right_cam, w, h)
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-while True:
-    left_cam.grab()
-    right_cam.grab()
 
-    ret1, frame_left = left_cam.retrieve()
-    ret2, frame_right = right_cam.retrieve()
+import csv
 
-    frames = frames + 1
+# open the file in the write mode
+with open('kamery_pozycje.csv', 'w') as f:
+    # create the csv writer
+    writer = csv.writer(f)
 
-    # Clear the axis
-    ax.cla()
-
-    if not ret1:
-        print("failed to grab frame")
-        continue
-    if not ret2:
-        print("failed to grab frame")
-        continue
-    else:
-        frame_left = cv2.undistort(frame_left, K1, D1, None, M1_opt)
-        frame_right = cv2.undistort(frame_right, K2, D2, None, M2_opt)
-
-        gray_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
-        gray_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
+    writer.writerow(['cam1 x', 'cam1 y', 'cam1 z', 'cam1 roll', 'cam1 pitch', 'cam1 yaw',
+                     'cam2 x', 'cam2 y', 'cam2 z', 'cam2 roll', 'cam2 pitch', 'cam2 yaw',
+                     'bs'
+                     ])
 
 
-        corners_left,  ids_left,  rejectedCorners1 = arucoDetector.detectMarkers(gray_left)
-        corners_right,  ids_right,  rejectedCorners2 = arucoDetector.detectMarkers(gray_right)
+    while True:
+        left_cam.grab()
+        right_cam.grab()
+
+        ret1, frame_left = left_cam.retrieve()
+        ret2, frame_right = right_cam.retrieve()
+
+        frames = frames + 1
+
+        # Clear the axis
+        ax.cla()
+
+        if not ret1:
+            print("failed to grab frame")
+            continue
+        if not ret2:
+            print("failed to grab frame")
+            continue
+        else:
+            frame_left = cv2.undistort(frame_left, K1, D1, None, M1_opt)
+            frame_right = cv2.undistort(frame_right, K2, D2, None, M2_opt)
+
+            gray_left = cv2.cvtColor(frame_left, cv2.COLOR_BGR2GRAY)
+            gray_right = cv2.cvtColor(frame_right, cv2.COLOR_BGR2GRAY)
 
 
-        if len(corners_left) > 4:
-
-            aruco.refineDetectedMarkers(gray_left, board, corners_left, ids_left, rejectedCorners1)
-            frame_left = aruco.drawDetectedMarkers(frame_left, corners_left, ids_left)
-
-            if corners_left is not None and len(ids_left)>3 and max(ids_left) <= max(board.getIds()):
-
-                corners_left = np.array(corners_left, dtype=np.float32)
-
-                if is_slice_in_list(numpy.squeeze(ids_left).tolist(), corner_ids): # all left corners are detected
-                    charucoretval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(corners_left, ids_left, gray_left, board)
-                    # Estimate camera pose
-                    left_valid, rvec, tvec = aruco.estimatePoseCharucoBoard(
-                        charucoCorners=charucoCorners, charucoIds=charucoIds, board=board, \
-                            cameraMatrix=M1_opt, distCoeffs=D1, rvec=None, tvec=None,\
-                                useExtrinsicGuess=False)
-
-                    if left_valid:
-                        # Invert the translation vector
-                        #tvec = -tvec
-
-                        # Create a transformation matrix
-                        R, _ = cv2.Rodrigues(rvec)
-                        T = np.concatenate((R, tvec), axis=1)
-                        T = np.vstack((T, [0, 0, 0, 1]))
-
-                        # Create a point at the origin board
-                        origin = np.array([[0, 0, 0, 1]])
-
-                        # Transform the origin using the camera pose
-                        left_camera_pos = np.dot(T, origin.T).T
-
-                        # mm to meters 
-                        left_camera_pos = left_camera_pos * 0.001 
-
-                        # Plot the transformed origin
-                        ax.scatter(left_camera_pos[0, 0], left_camera_pos[0, 1], left_camera_pos[0, 2], c='red', label='Camera_1')
+            corners_left,  ids_left,  rejectedCorners1 = arucoDetector.detectMarkers(gray_left)
+            corners_right,  ids_right,  rejectedCorners2 = arucoDetector.detectMarkers(gray_right)
 
 
+            if len(corners_left) > 4:
 
-                        #cv2.drawFrameAxes(frame_left, M1_opt, D1, rvec, tvec, 120)
-                        #frame_left = cv2.resize(frame_left, (int(frame_left.shape[1] / 1.2), int(frame_left.shape[0] / 1.5)), interpolation= cv2.INTER_LINEAR)
-                else:
-                    left_valid = False
+                aruco.refineDetectedMarkers(gray_left, board, corners_left, ids_left, rejectedCorners1)
+                frame_left = aruco.drawDetectedMarkers(frame_left, corners_left, ids_left)
 
-        if len(corners_right) > 4:
+                if corners_left is not None and len(ids_left)>3 and max(ids_left) <= max(board.getIds()):
 
-            aruco.refineDetectedMarkers(gray_right, board, corners_right, ids_right, rejectedCorners2)
-            frame_right = aruco.drawDetectedMarkers(frame_right, corners_right, ids_right)
-            
-            if corners_right is not None and len(ids_right)>3 and max(ids_right) <= max(board.getIds()):
+                    corners_left = np.array(corners_left, dtype=np.float32)
 
-                corners_right = np.array(corners_right, dtype=np.float32)
+                    if is_slice_in_list(numpy.squeeze(ids_left).tolist(), corner_ids): # all left corners are detected
+                        charucoretval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(corners_left, ids_left, gray_left, board)
+                        # Estimate camera pose
+                        left_valid, rvec, tvec = aruco.estimatePoseCharucoBoard(
+                            charucoCorners=charucoCorners, charucoIds=charucoIds, board=board, \
+                                cameraMatrix=M1_opt, distCoeffs=D1, rvec=None, tvec=None,\
+                                    useExtrinsicGuess=False)
 
-                if is_slice_in_list(numpy.squeeze(ids_right).tolist(), corner_ids): # all left corners are detected
-                    charucoretval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(corners_right, ids_right, gray_right, board)
-                    # Estimate camera pose
-                    right_valid, rvec, tvec = aruco.estimatePoseCharucoBoard(
-                        charucoCorners=charucoCorners, charucoIds=charucoIds, board=board, \
-                            cameraMatrix=M1_opt, distCoeffs=D2, rvec=None, tvec=None,\
-                                useExtrinsicGuess=False)
+                        if left_valid:
+                            # Invert the translation vector
+                            #tvec = -tvec
 
-                    if right_valid:
-                        # Invert the translation vector
-                        #tvec = -tvec
+                            # Create a transformation matrix
+                            R, _ = cv2.Rodrigues(rvec)
+                            T = np.concatenate((R, tvec), axis=1)
+                            T = np.vstack((T, [0, 0, 0, 1]))
 
-                        # Create a transformation matrix
-                        R, _ = cv2.Rodrigues(rvec)
-                        T = np.concatenate((R, tvec), axis=1)
-                        T = np.vstack((T, [0, 0, 0, 1]))
+                            l_yaw, l_pitch, l_roll = rotation_matrix_to_attitude_angles(R)
 
-                        # Create a point at the origin board
-                        origin = np.array([[0, 0, 0, 1]])
+                            # Create a point at the origin board
+                            origin = np.array([[0, 0, 0, 1]])
 
-                        # Transform the origin using the camera pose
-                        right_camera_pos = np.dot(T, origin.T).T
+                            # Transform the origin using the camera pose
+                            left_camera_pos = np.dot(T, origin.T).T
 
-                        # mm to meters 
-                        right_camera_pos = right_camera_pos * 0.001 
+                            # mm to meters 
+                            left_camera_pos = left_camera_pos * 0.001 
 
-                        # Plot the transformed origin
-                        ax.scatter(right_camera_pos[0, 0], right_camera_pos[0, 1], right_camera_pos[0, 2], c='red', label='Camera_2')
+                            # Plot the transformed origin
+                            ax.scatter(left_camera_pos[0, 0], left_camera_pos[0, 1], left_camera_pos[0, 2], c='red', label='Camera_1')
 
-                                                #print(l_rvec_t.shape)
-                        #cv2.drawFrameAxes(frame_left, M1_opt, D1, rvec, tvec, 120)
-                        #frame_left = cv2.resize(frame_left, (int(frame_left.shape[1] / 1.2), int(frame_left.shape[0] / 1.5)), interpolation= cv2.INTER_LINEAR)
-                else:
-                    right_valid = False
-                    
 
-        if len(corners_left) > 4 and len(corners_right) > 4:
-            if left_valid and right_valid:
-                bs = math.hypot(
-                    right_camera_pos[0, 0] - left_camera_pos[0, 0], 
-                    right_camera_pos[0, 1] - left_camera_pos[0, 1], 
-                    right_camera_pos[0, 2] - left_camera_pos[0, 2])
+
+                            #cv2.drawFrameAxes(frame_left, M1_opt, D1, rvec, tvec, 120)
+                            #frame_left = cv2.resize(frame_left, (int(frame_left.shape[1] / 1.2), int(frame_left.shape[0] / 1.5)), interpolation= cv2.INTER_LINEAR)
+                    else:
+                        left_valid = False
+
+            if len(corners_right) > 4:
+
+                aruco.refineDetectedMarkers(gray_right, board, corners_right, ids_right, rejectedCorners2)
+                frame_right = aruco.drawDetectedMarkers(frame_right, corners_right, ids_right)
                 
-                print('baseline: {bs} cm'.format(bs=bs * 100))
+                if corners_right is not None and len(ids_right)>3 and max(ids_right) <= max(board.getIds()):
+
+                    corners_right = np.array(corners_right, dtype=np.float32)
+
+                    if is_slice_in_list(numpy.squeeze(ids_right).tolist(), corner_ids): # all left corners are detected
+                        charucoretval, charucoCorners, charucoIds = aruco.interpolateCornersCharuco(corners_right, ids_right, gray_right, board)
+                        # Estimate camera pose
+                        right_valid, rvec, tvec = aruco.estimatePoseCharucoBoard(
+                            charucoCorners=charucoCorners, charucoIds=charucoIds, board=board, \
+                                cameraMatrix=M1_opt, distCoeffs=D2, rvec=None, tvec=None,\
+                                    useExtrinsicGuess=False)
+
+                        if right_valid:
+                            # Invert the translation vector
+                            #tvec = -tvec
+
+                            # Create a transformation matrix
+                            R, _ = cv2.Rodrigues(rvec)
+                            T = np.concatenate((R, tvec), axis=1)
+                            T = np.vstack((T, [0, 0, 0, 1]))
+
+                            r_yaw, r_pitch, r_roll = rotation_matrix_to_attitude_angles(R)
+
+                            # Create a point at the origin board
+                            origin = np.array([[0, 0, 0, 1]])
+
+                            # Transform the origin using the camera pose
+                            right_camera_pos = np.dot(T, origin.T).T
+
+                            # mm to meters 
+                            right_camera_pos = right_camera_pos * 0.001 
+
+                            # Plot the transformed origin
+                            ax.scatter(right_camera_pos[0, 0], right_camera_pos[0, 1], right_camera_pos[0, 2], c='red', label='Camera_2')
+
+                                                    #print(l_rvec_t.shape)
+                            #cv2.drawFrameAxes(frame_left, M1_opt, D1, rvec, tvec, 120)
+                            #frame_left = cv2.resize(frame_left, (int(frame_left.shape[1] / 1.2), int(frame_left.shape[0] / 1.5)), interpolation= cv2.INTER_LINEAR)
+                    else:
+                        right_valid = False
+                        
+
+            if len(corners_left) > 4 and len(corners_right) > 4:
+                if left_valid and right_valid:
+                    bs = math.hypot(
+                        right_camera_pos[0, 0] - left_camera_pos[0, 0], 
+                        right_camera_pos[0, 1] - left_camera_pos[0, 1], 
+                        right_camera_pos[0, 2] - left_camera_pos[0, 2])
+                    
+                    print('baseline: {bs} cm'.format(bs=bs * 100))
+
+                    writer.writerow([str(left_camera_pos[0, 0]* 100), str(left_camera_pos[0, 1]* 100), str(left_camera_pos[0, 2]* 100), 
+                                     str(l_roll), str(l_pitch),  str(l_yaw),
+                                     str(right_camera_pos[0, 0]* 100), str(right_camera_pos[0, 1]* 100), str(right_camera_pos[0, 2]* 100),
+                                    str(r_roll), str(r_pitch),  str(r_yaw),
+                                    str(bs* 100)
+                     ])
 
 
-        # Set the limits and labels
-        ax.set_xlim(-1.5, 1.5)
-        ax.set_ylim(-1.5, 1.5)
-        ax.set_zlim(0, 1.5)
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
+            # Set the limits and labels
+            ax.set_xlim(-1.5, 1.5)
+            ax.set_ylim(-1.5, 1.5)
+            ax.set_zlim(0, 1.5)
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
 
 
-        #print(' x: {x}, y: {y} z: {z} '.format(x = camera_pos[0, 0], y = camera_pos[0, 1], z = camera_pos[0, 2]))
+            #print(' x: {x}, y: {y} z: {z} '.format(x = camera_pos[0, 0], y = camera_pos[0, 1], z = camera_pos[0, 2]))
 
-    
-        chessboard_corners = board.getChessboardCorners()
-        #print(chessboard_corners)
-
-        # Plot the ChArUco board
-        for corner in chessboard_corners:
-            x = corner[0] * 0.001 
-            y = corner[1] * 0.001 
-            ax.scatter(x, y, 0, c='blue')
         
-        
-        # Add a legend
-        ax.legend()
+            chessboard_corners = board.getChessboardCorners()
+            #print(chessboard_corners)
 
-        # Draw the plot
-        plt.draw()
-        plt.pause(0.01)
+            # Plot the ChArUco board
+            for corner in chessboard_corners:
+                x = corner[0] * 0.001 
+                y = corner[1] * 0.001 
+                ax.scatter(x, y, 0, c='blue')
+            
+            
+            # Add a legend
+            ax.legend()
+
+            # Draw the plot
+            plt.draw()
+            plt.pause(0.01)
 
 
 
 
-    k = cv2.waitKey(1)
-    if k%256 == 27:
-        # ESC pressed
-        print("Escape hit, closing...")
-        break
-    elif(k%256 == ord('s')):
-        print('save clicked')
+        k = cv2.waitKey(1)
+        if k%256 == 27:
+            # ESC pressed
+            print("Escape hit, closing...")
+            break
+        elif(k%256 == ord('s')):
+            print('save clicked')
 
-        cv2.imwrite('left.png', frame_left)
+            cv2.imwrite('left.png', frame_left)
 
 
 left_cam.release()

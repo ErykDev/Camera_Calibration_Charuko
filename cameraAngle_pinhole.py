@@ -31,6 +31,9 @@ P2 = np.zeros(shape=(3,4))
 cv2.stereoRectify(K1, D1, K2, D2, imageSize, R, T, R1, R2, P1, P2, alpha=0, flags=cv2.CALIB_ZERO_DISPARITY)
 
 
+
+
+
 fov_x, fov_y, focal_len, principal, aspect = \
     cv2.calibrationMatrixValues(P1[:3, :3], (image_pixel_size_x, image_pixel_size_y),
                                 sensor_size_x, sensor_size_y)  
@@ -47,3 +50,4 @@ print(f'focal_len mm:{focal_len}')
 print(f'focal: {focalv2}') 
 print(f'principal:{principal}')
 print(f'aspect:{aspect}')
+
