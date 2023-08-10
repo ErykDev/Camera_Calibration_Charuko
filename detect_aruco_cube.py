@@ -187,8 +187,6 @@ while True:
                 centroids.append(centroid_coords)
                 rotation_vectors.append(computed_rvec)
 
-                print(computed_rvec.shape)
-
             avg_centroid = np.average(centroids, axis=0)
             avg_rotation_matrix = np.average(rotation_vectors, axis=0)
 
