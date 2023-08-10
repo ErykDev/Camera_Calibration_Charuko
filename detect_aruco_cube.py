@@ -32,8 +32,8 @@ def aruco_display(corners, ids, image):
 			cY = int((topLeft[1] + bottomRight[1]) / 2.0)
 			cv2.circle(image, (cX, cY), 4, (0, 0, 255), -1)
 			
-			cv2.putText(image, str(markerID),(topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-				0.5, (0, 255, 0), 2)
+			#cv2.putText(image, str(markerID),(topLeft[0], topLeft[1] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+			#	0.5, (0, 255, 0), 2)
 			print("[Inference] ArUco marker ID: {}".format(markerID))
 
 	return image
@@ -87,14 +87,14 @@ EUL_TRANS_DICT= {
 
 # Dictionary used to find the centroid of the cube given a face
 CENTER_POINT_OFFSET_DICT={
-    94 : np.float32([[-0.025,0,0]]), #top
-    97 : np.float32([[0.025,0,0]]),
-    95 : np.float32([[0,0.025,0]]),
-    99 : np.float32([[0,-0.025,0]]),
+    94 : np.float32([[-0.03,0,0]]), #top
+    97 : np.float32([[0.03,0,0]]),
+    95 : np.float32([[0,0.03,0]]),
+    99 : np.float32([[0,-0.03,0]]),
 
 
-    98 : np.float32([[0,0,0.025]]),
-    96 : np.float32([[0,0,-0.025]])
+    98 : np.float32([[0,0,0.03]]),
+    96 : np.float32([[0,0,-0.03]])
 }
 
 
@@ -102,13 +102,11 @@ while True:
     cam.grab()
     ret1, frame = cam.retrieve()
 
-
     if not ret1:
         print("failed to grab frame")
         continue
     else:
         frame = cv2.undistort(frame, K1, D1, None, K1_opt)
-
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         corners, ids, rejectedCorners = arucoDetector.detectMarkers(gray)
@@ -130,45 +128,51 @@ while True:
             frame =  aruco_display(corners, ids, frame)
 
 
-                    # Choose the lowest id ArUco
-            minId = min(ids)[0]
-            minIndex = np.argmin(ids)
-            
-            # Estimate the cube pose given the ArUco code
-            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[minIndex], 0.04, K1_opt, D1)
+            centroids = []
 
-            # Draw the ArUco id on the output image
-            frame = cv2.putText(frame, 'id: '+str(minId), (int(corners[minIndex][0][0][0]),int(corners[minIndex][0][0][1])), cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0), 2, cv2.LINE_AA)
-            
-            # Transformations needed to have coherent frames
-            rmat = cv2.Rodrigues(rvec)[0]
-            computed_rtm = np.matmul(rmat,EUL_TRANS_DICT[minId])
-            computed_rvec = cv2.Rodrigues(computed_rtm)[0]
+            for Index in ids:
 
-            # Draw the frames to the output image
-            #cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, tvec, 0.01)
+                id = Index[0]
+                cornerIndex = np.argwhere(ids == id)[0][0]
+                
+                # Estimate the cube pose given the ArUco code
+                rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[cornerIndex], 0.04, K1_opt, D1)
 
-            # Preliminary operations to find the centroid of the cube
-            centroid_offset = CENTER_POINT_OFFSET_DICT[minId]
-            homogenous_trans_mtx  = np.append(computed_rtm, [ [tvec[0][0][0]], [tvec[0][0][1]], [tvec[0][0][2]] ], axis=1)
-            homogenous_trans_mtx = np.append(homogenous_trans_mtx,[[0,0,0,1]],axis=0)
+                # Draw the ArUco id on the output image
+                frame = cv2.putText(frame, 'id: '+str(id), (int(corners[cornerIndex][0][0][0]), int(corners[cornerIndex][0][0][1])), cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0), 2, cv2.LINE_AA)
+                
+                # Transformations needed to have coherent frames
+                rmat = cv2.Rodrigues(rvec)[0]
+                computed_rtm = np.matmul(rmat,EUL_TRANS_DICT[id])
+                computed_rvec = cv2.Rodrigues(computed_rtm)[0]
 
-            # Find x,y position to draw the centroid
-            imgpts, jac = cv2.projectPoints(centroid_offset, computed_rvec, tvec, K1_opt, D1)
-            imgpts = np.int32(imgpts).reshape(-1,2)
-            
-            # Find the 3d coordinates of the centroid
-            x = CENTER_POINT_OFFSET_DICT[minId][0][0]
-            y = CENTER_POINT_OFFSET_DICT[minId][0][1]
-            z = CENTER_POINT_OFFSET_DICT[minId][0][2]
-            centroid_coords = [ [x], [y], [z], [1] ]
-            centroid_coords = np.matmul(homogenous_trans_mtx, centroid_coords)
+                # Draw the frames to the output image
+                #cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, tvec, 0.01)
 
-            # Draw the centroid on the output image
-            frame = cv2.circle(frame, (imgpts[0][0], imgpts[0][1]), radius=3, color=(255,0,255), thickness=4)
+                # Preliminary operations to find the centroid of the cube
+                centroid_offset = CENTER_POINT_OFFSET_DICT[id]
+                homogenous_trans_mtx  = np.append(computed_rtm, [ [tvec[0][0][0]], [tvec[0][0][1]], [tvec[0][0][2]] ], axis=1)
+                homogenous_trans_mtx = np.append(homogenous_trans_mtx,[[0,0,0,1]], axis=0)
+
+                # Find x,y position to draw the centroid
+                imgpts, jac = cv2.projectPoints(centroid_offset, computed_rvec, tvec, K1_opt, D1)
+                imgpts = np.int32(imgpts).reshape(-1,2)
+                
+                # Find the 3d coordinates of the centroid
+                x = CENTER_POINT_OFFSET_DICT[id][0][0]
+                y = CENTER_POINT_OFFSET_DICT[id][0][1]
+                z = CENTER_POINT_OFFSET_DICT[id][0][2]
+                centroid_coords = [ [x], [y], [z], [1] ]
+                centroid_coords = np.matmul(homogenous_trans_mtx, centroid_coords)
+
+                # Draw the centroid on the output image
+                #frame = cv2.circle(frame, (imgpts[0][0], imgpts[0][1]), radius=3, color=(255,0,255), thickness=4)
+                centroids.append(centroid_coords)
 
 
-            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, centroid_coords[:-1], 0.02)
+            avg_centroid = np.average(centroids, axis=0)
+
+            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, avg_centroid[:-1], 0.02)
 
             
             #return frame, imgpts[0], tvec, computed_rvec
