@@ -7,6 +7,22 @@ import cv2.aruco as aruco
 
 from calibration_utils import *
 
+from scipy.linalg import logm, expm
+
+
+def average_rotation_vector(rotation_vectors):
+    # Convert rotation vectors to unit vectors
+    unit_vectors = [v / np.linalg.norm(v) for v in rotation_vectors]
+    
+    # Average the unit vectors
+    avg_unit_vector = np.mean(unit_vectors, axis=0)
+    avg_unit_vector /= np.linalg.norm(avg_unit_vector)
+    
+    # Convert the average unit vector back to a rotation vector
+    average_rotation = avg_unit_vector * 2 * np.arccos(avg_unit_vector[0])
+    
+    return average_rotation
+
 
 def aruco_display(corners, ids, image):
 	if len(corners) > 0:
@@ -129,6 +145,7 @@ while True:
 
 
             centroids = []
+            rotation_vectors = []
 
             for Index in ids:
 
@@ -168,11 +185,14 @@ while True:
                 # Draw the centroid on the output image
                 #frame = cv2.circle(frame, (imgpts[0][0], imgpts[0][1]), radius=3, color=(255,0,255), thickness=4)
                 centroids.append(centroid_coords)
+                rotation_vectors.append(computed_rvec)
 
+                print(computed_rvec.shape)
 
             avg_centroid = np.average(centroids, axis=0)
+            avg_rotation_matrix = np.average(rotation_vectors, axis=0)
 
-            cv2.drawFrameAxes(frame, K1_opt, D1, computed_rvec, avg_centroid[:-1], 0.02)
+            cv2.drawFrameAxes(frame, K1_opt, D1, avg_rotation_matrix, avg_centroid[:-1], 0.02)
 
             
             #return frame, imgpts[0], tvec, computed_rvec
