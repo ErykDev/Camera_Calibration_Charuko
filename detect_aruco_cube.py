@@ -1,13 +1,9 @@
 import cv2
 import numpy as np
 
-
 import cv2.aruco as aruco
 
-
 from calibration_utils import *
-
-from scipy.linalg import logm, expm
 
 
 def average_rotation_vector(rotation_vectors):
@@ -188,9 +184,9 @@ while True:
                 rotation_vectors.append(computed_rvec)
 
             avg_centroid = np.average(centroids, axis=0)
-            avg_rotation_matrix = np.average(rotation_vectors, axis=0)
+            avg_rotation_vec = np.average(rotation_vectors, axis=0)
 
-            cv2.drawFrameAxes(frame, K1_opt, D1, avg_rotation_matrix, avg_centroid[:-1], 0.02)
+            cv2.drawFrameAxes(frame, K1_opt, D1, avg_rotation_vec, avg_centroid[:-1], 0.02)
 
             
             #return frame, imgpts[0], tvec, computed_rvec
